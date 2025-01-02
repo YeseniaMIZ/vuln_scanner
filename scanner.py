@@ -10,28 +10,35 @@ from itertools import product
 def test_xss(url):
     payloads = ["<script>alert('XSS')</script>", "<img src='x' onerror='alert(1)'>"]
     for payload in payloads:
-        response = requests.get(url, params={ 'input': payload })
+        response = requests.get(url, params={'input': payload})
         if payload in response.text:
             print(f"Potential XSS vulnerability found on: {url}")
 
 def test_stored_xss(url):
     payloads = ["<script>alert('Stored XSS')</script>", "<img src='x' onerror='alert(1)'>"]
-    response = requests.post(url, data={ 'input': payload })
-    if payload in response.text:
-        print(f"Potential Stored XSS vulnerability found on: {url}")
+    for payload in payloads:
+        try:
+            response = requests.post(url, data={'input': payload})
+            if payload in response.text:
+                print(f"Stored XSS vulnerability found at {url}")
+                print(f"Payload: {payload}")
+            else:
+                print(f"No XSS vulnerability found for {url} with payload: {payload}")
+        except requests.RequestException as e:
+            print(f"Error testing {url}: {str(e)}")
 
 # SQL Injection (Error-Based and Blind)
 def test_sql_injection(url):
     sql_payloads = ["' OR 1=1 --", "' OR 'a'='a"]
     for payload in sql_payloads:
-        response = requests.get(url, params={ 'input': payload })
+        response = requests.get(url, params={'input': payload})
         if "error" in response.text:
             print(f"Potential SQL Injection vulnerability found on: {url}")
 
 def test_blind_sql_injection(url):
     blind_payloads = ["' AND 1=1", "' AND 1=2", "' OR 1=1 --"]
     for payload in blind_payloads:
-        response = requests.get(url, params={ 'input': payload })
+        response = requests.get(url, params={'input': payload})
         if "error" in response.text or "unexpected" in response.text:
             print(f"Potential Blind SQL Injection vulnerability found on: {url}")
 
@@ -48,7 +55,7 @@ def test_csrf(url):
 def test_open_redirect(url):
     redirect_payloads = ["http://malicious-website.com", "https://malicious-website.com"]
     for payload in redirect_payloads:
-        response = requests.get(url, params={ 'redirect': payload })
+        response = requests.get(url, params={'redirect': payload})
         if response.url != url:
             print(f"Potential Open Redirect vulnerability found on: {url}")
 
@@ -115,7 +122,7 @@ def check_cors(url):
 
 # Run the scan on the target URL
 def scan(url):
-    print(f"Scanning {url}...")
+    print(f"Scanning {url} for vulnerabilities...\n")
     test_xss(url)
     test_stored_xss(url)
     test_sql_injection(url)
